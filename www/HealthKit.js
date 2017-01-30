@@ -81,7 +81,6 @@ define('readDateOfBirth', {noArgs: true});
 define('readGender', {noArgs: true});
 define('readFitzpatrickSkinType', {noArgs: true});
 define('findWorkouts');
-define('delete');
 define('readWeight');
 define('readHeight');
 define('readBloodType', {noArgs: true});
@@ -118,6 +117,10 @@ define('saveQuantitySample', {required: 'sampleType'}, hasValidDates);
 define('saveCorrelation', {required: ['correlationType', 'samples']}, function(options) {
   hasValidDates(options);
   options.objects = options.samples.map(hasValidDates);
+});
+
+define('deleteObjects', {required: 'type'}, function(options) {
+  hasValidDates(options);
 });
 
 define('sumQuantityType', {required: ['sampleType']}, hasValidDates);

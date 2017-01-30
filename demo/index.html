@@ -65,6 +65,8 @@
     &nbsp;&nbsp;
     <button onclick="findWorkouts()">Find Workouts</button>
     <br/><br/>
+    <button onclick="deleteWorkouts()">Delete Workouts</button>
+    <br/><br/>
     <button onclick="monitorSampleType()">Monitor sample type</button>
     <br/><br/>
     <button onclick="sumQuantityType()">Sum quantity type</button>
@@ -240,6 +242,17 @@
     );
   }
 
+  function deleteWorkouts() {
+    window.plugins.healthkit.deleteObjects({
+          'type': 'workoutType',
+          'startDate': new Date(new Date().getTime() - 1000*60*60*24*365),
+          'endDate': new Date(),
+          },
+          callback,
+          callback
+          );
+  }
+  
   function querySampleType() {
     window.plugins.healthkit.querySampleType(
         {

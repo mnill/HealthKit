@@ -1699,6 +1699,62 @@ static NSString *const HKPluginKeyUUID = @"UUID";
     [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
+/**
+ * Delete a objects from teh HealthKit store by type and start\end dates
+ *
+ * @param command *CDVInvokedUrlCommand
+ */
+- (void)deleteObjects:(CDVInvokedUrlCommand *)command {
+    
+    __block HealthKit *bSelf = self;
+    
+    NSDictionary *args = command.arguments[0];
+    NSDate *startDate = [NSDate dateWithTimeIntervalSince1970:[args[HKPluginKeyStartDate] longValue]];
+    NSDate *endDate = [NSDate dateWithTimeIntervalSince1970:[args[HKPluginKeyEndDate] longValue]];
+    
+    //    HKQuantityType *quantityType = [HealthKit getHKQuantityType:args[@"quantityType"]];
+    HKSampleType *sampleType = [HealthKit getHKSampleType:args[@"type"]];
+    
+    if (sampleType == nil) {
+        [HealthKit triggerErrorCallbackWithMessage:@"quantityType was invalid" command:command delegate:self.commandDelegate];
+        return;
+    }
+    
+    
+    // the predicate used to execute the query
+    NSPredicate *queryPredicate = [HKSampleQuery predicateForSamplesWithStartDate:startDate endDate:endDate options:HKQueryOptionNone];
+    
+    HKSampleQuery *query = [[HKSampleQuery alloc] initWithSampleType:sampleType predicate:queryPredicate limit:HKObjectQueryNoLimit sortDescriptors:nil resultsHandler:^(HKSampleQuery * _Nonnull query, NSArray<__kindof HKSample *> * _Nullable results, NSError * _Nullable error) {
+        
+        if (error) {
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [HealthKit triggerErrorCallbackWithMessage:error.localizedDescription command:command delegate:bSelf.commandDelegate];
+            });
+        } else if (results == NULL || [results count] == 0) {
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                [HealthKit triggerErrorCallbackWithMessage:@"No objects found" command:command delegate:bSelf.commandDelegate];
+            });
+        } else {
+            // now that we retrieved the samples, we can delete it/them
+            [[HealthKit sharedHealthStore] deleteObjects:results withCompletion:^(BOOL success, NSError * _Nullable error) {
+                if (success) {
+                    dispatch_sync(dispatch_get_main_queue(), ^{
+                        CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                        [bSelf.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+                    });
+                } else {
+                    dispatch_sync(dispatch_get_main_queue(), ^{
+                        [HealthKit triggerErrorCallbackWithMessage:error.localizedDescription command:command delegate:bSelf.commandDelegate];
+                    });
+                }
+            }];
+            
+        }
+    }];
+    [[HealthKit sharedHealthStore] executeQuery:query];
+    
+}
+
 @end
 
 #pragma clang diagnostic pop
